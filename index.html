@@ -16,4 +16,63 @@
   </style>
 </head>
 <body>
-  <h1>☕ Friend Orders<
+  <h1>☕ Friend Orders</h1>
+
+  <form id="orderForm">
+    <input id="friend_name" placeholder="Friend's name" required>
+    <input id="drinks" placeholder="Their drink">
+    <input id="food" placeholder="Their food">
+    <textarea id="notes" placeholder="Notes (allergies, favourites...)"></textarea>
+    <button type="submit">Save Order</button>
+  </form>
+
+  <h2>Saved Orders</h2>
+  <div id="orders"></div>
+
+  <script>
+    const SUPABASE_URL = 'PASTE_YOUR_API_URL_HERE';
+    const SUPABASE_KEY = 'PASTE_YOUR_PUBLISHABLE_KEY_HERE';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function loadOrders() {
+      const { data, error } = await db.from('orders').select('*').order('friend_name');
+      const box = document.getElementById('orders');
+      if (error) { box.innerHTML = '<p>Error: ' + error.message + '</p>'; return; }
+      box.innerHTML = '';
+      data.forEach(o => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>${o.friend_name || ''}</h3>
+          <p><b>Drink:</b> ${o.drinks || '-'}</p>
+          <p><b>Food:</b> ${o.food || '-'}</p>
+          <p><b>Notes:</b> ${o.notes || '-'}</p>
+          <button class="delete" onclick="deleteOrder(${o.id})">Delete</button>`;
+        box.appendChild(card);
+      });
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const order = {
+        friend_name: document.getElementById('friend_name').value,
+        drinks: document.getElementById('drinks').value,
+        food: document.getElementById('food').value,
+        notes: document.getElementById('notes').value
+      };
+      const { error } = await db.from('orders').insert(order);
+      if (error) { alert('Error: ' + error.message); return; }
+      e.target.reset();
+      loadOrders();
+    });
+
+    async function deleteOrder(id) {
+      if (!confirm('Delete this order?')) return;
+      await db.from('orders').delete().eq('id', id);
+      loadOrders();
+    }
+
+    loadOrders();
+  </script>
+</body>
+</html>
